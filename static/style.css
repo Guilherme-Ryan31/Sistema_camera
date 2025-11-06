@@ -1,0 +1,373 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #0E1117;
+    color: #FAFAFA;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+    padding-top: 0; 
+}
+
+/* Header */
+header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: #FAFAFA;
+    letter-spacing: 1px;
+}
+
+.subtitle {
+    color: #B0B0B0;
+    font-size: 1.1rem;
+}
+
+h2 {
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+    color: #FAFAFA;
+    letter-spacing: 0.5px;
+}
+
+/* Controles */
+.controls {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    justify-content: center;
+}
+
+.btn {
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-success {
+    background-color: #28A745;
+    color: white;
+}
+
+.btn-success:hover:not(:disabled) {
+    background-color: #218838;
+}
+
+.btn-danger {
+    background-color: #DC3545;
+    color: white;
+}
+
+.btn-danger:hover:not(:disabled) {
+    background-color: #C82333;
+}
+
+/* Layout Principal */
+.main-layout {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+/* Vídeo */
+.video-section {
+    background-color: #1E2329;
+    padding: 1rem;
+    border-radius: 10px;
+    position: relative;
+    overflow: visible;
+}
+
+#videoFeed {
+    width: 100%;
+    height: 500px;
+    border-radius: 10px;
+    background-color: #000;
+    object-fit: contain;
+    display: block;
+}
+
+/* Sidebar */
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* Alertas */
+.alerts-section,
+.prompt-section,
+.status-section,
+.chart-section {
+    background-color: #1E2329;
+    padding: 1.5rem;
+    border-radius: 10px;
+}
+
+/* Alert Box */
+.alert-box {
+    background-color: #262C35;
+    padding: 1rem;
+    border-radius: 8px;
+    text-align: center;
+    color: #FAFAFA;
+}
+
+.alert-box.alert-active {
+    background: linear-gradient(135deg, #F5C742 0%, #E8B627 100%);
+    color: #000;
+    font-weight: 600;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.8; }
+}
+
+.alert-warning {
+    line-height: 1.8;
+}
+
+/* Prompt Section */
+.prompt-box {
+    background-color: #262C35;
+    padding: 1rem;
+    border-radius: 8px;
+    text-align: center;
+    color: #B0B0B0;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    transition: all 0.3s ease;
+}
+
+.prompt-box.prompt-active {
+    background-color: #2A2F38;
+    color: #FAFAFA;
+    font-weight: 600;
+}
+
+/* Status Section */
+.status-section {
+    background-color: #1E2329;
+    padding: 1.5rem;
+    border-radius: 10px;
+}
+
+.status-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.status-header h2 {
+    margin: 0;
+    flex-shrink: 0;
+}
+
+.status-text {
+    font-size: 1rem; /* TAMANHO DOS BOTÕES PRINCIPAIS */
+    font-weight: 600; /* MESMA ESPESSURA */
+    padding: 0.75rem 1.5rem; /* MESMO PADDING DOS BOTÕES */
+    border-radius: 8px; /* MESMO BORDER-RADIUS */
+    min-width: 120px;
+    text-align: center;
+    flex-shrink: 0;
+    color: white; /* COR DO TEXTO BRANCA */
+    border: none; /* REMOVE BORDAS */
+    cursor: default; /* SEM CURSOR DE CLIQUE */
+}
+
+.status-active {
+    background-color: #28A745;
+}
+
+.status-inactive {
+    background-color: #DC3545;
+}
+
+/* Chart Section */
+.chart-container {
+    position: relative;
+    height: 250px;
+    width: 100%;
+    background-color: #262C35;
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+/* Galeria */
+.gallery-section {
+    background-color: #1E2329;
+    padding: 1.5rem;
+    border-radius: 10px;
+}
+
+.video-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.video-card {
+    background-color: #262C35;
+    padding: 0.75rem;
+    border-radius: 8px;
+    transition: transform 0.3s ease;
+}
+
+.video-card:hover {
+    transform: translateY(-4px);
+}
+
+.video-card video {
+    width: 100%;
+    height: 150px;
+    border-radius: 6px;
+    margin-bottom: 0.5rem;
+    object-fit: cover;
+    background-color: #000;
+}
+
+.video-title {
+    font-weight: 600;
+    margin: 0.5rem 0;
+    font-size: 0.9rem;
+    color: #FAFAFA;
+}
+
+.video-time {
+    color: #B0B0B0;
+    font-size: 0.85rem;
+}
+
+.no-videos {
+    text-align: center;
+    color: #808080;
+    padding: 2rem;
+    font-size: 0.95rem;
+}
+
+/* Footer */
+footer {
+    text-align: center;
+    color: #666;
+    padding: 2rem 0;
+    margin-top: 2rem;
+    border-top: 1px solid #2A2A2A;
+}
+
+/* Notificações */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    z-index: 1000;
+    transition: opacity 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.notification-success {
+    background-color: #28A745;
+    color: white;
+}
+
+.notification-error {
+    background-color: #DC3545;
+    color: white;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #0E1117;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #1E2329;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #4A4A4A;
+}
+
+/* Responsivo */
+@media (max-width: 968px) {
+    .main-layout {
+        grid-template-columns: 1fr;
+    }
+
+    #videoFeed {
+        height: 400px;
+    }
+
+    .video-gallery {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    }
+
+    h1 {
+        font-size: 2rem;
+    }
+
+    .subtitle {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 640px) {
+    .container {
+        padding: 1rem;
+    }
+
+    .controls {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .btn {
+        width: 100%;
+    }
+
+    #videoFeed {
+        height: 300px;
+    }
+}
