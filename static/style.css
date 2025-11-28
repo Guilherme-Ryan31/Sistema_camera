@@ -371,3 +371,111 @@ footer {
         height: 300px;
     }
 }
+/* Estilos para o Modal */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    overflow-y: auto;
+    }
+
+.modal-content {
+    background-color: #1E2329;
+    margin: 50px auto;
+    padding: 30px;
+    border-radius: 15px;
+    width: 90%;
+    max-width: 900px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+    }
+
+            .modal-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 20px;
+                padding-bottom: 15px;
+                border-bottom: 2px solid #00ff41;
+            }
+
+            .modal-header h2 {
+                color: #00ff41;
+                margin: 0;
+            }
+
+            .close {
+                color: #aaa;
+                font-size: 35px;
+                font-weight: bold;
+                cursor: pointer;
+                transition: color 0.3s;
+            }
+
+            .close:hover {
+                color: #ff4444;
+            }
+
+            .sessao-info {
+                background: #262C35;
+                padding: 15px;
+                border-radius: 8px;
+                margin-bottom: 20px;
+            }
+
+            .sessao-info p {
+                margin: 8px 0;
+                font-size: 0.95rem;
+            }
+
+            .sessao-info h3 {
+                color: #00ff41;
+                margin-bottom: 10px;
+            }
+
+            .anomalias-lista {
+                max-height: 400px;
+                overflow-y: auto;
+                background: #262C35;
+                border-radius: 8px;
+                padding: 15px;
+            }
+
+            .anomalia-item {
+                background: #1E2329;
+                padding: 12px;
+                margin-bottom: 10px;
+                border-radius: 6px;
+                border-left: 4px solid #F5C742;
+                cursor: pointer;
+                transition: all 0.3s;
+            }
+
+            .anomalia-item:hover {
+                background: #2A2F38;
+                transform: translateX(5px);
+            }
+
+            .anomalia-item strong {
+                color: #F5C742;
+                font-size: 1.1rem;
+            }
+
+            .sem-dados {
+                text-align: center;
+                padding: 40px;
+                color: #808080;
+            }
+
+            .btn-info {
+                background-color: #00aaff;
+                color: white;
+            }
+
+            .btn-info:hover:not(:disabled) {
+                background-color: #0088cc;
+            }

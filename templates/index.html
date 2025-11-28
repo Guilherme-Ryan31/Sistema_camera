@@ -17,10 +17,13 @@
         <!-- Controles -->
         <div class="controls">
             <button id="btnIniciar" class="btn btn-success" onclick="iniciarSistema()">
-                 Iniciar Sistema
+                Iniciar Sistema
             </button>
             <button id="btnParar" class="btn btn-danger" onclick="pararSistema()" disabled>
-                 Parar Sistema
+                Parar Sistema
+            </button>
+            <button id="btnVerIndice" class="btn btn-info" onclick="abrirModalIndice()">
+                Ver Índice
             </button>
         </div>
 
@@ -75,8 +78,17 @@
                 <p class="no-videos">Nenhum vídeo gravado ainda.</p>
             </div>
         </div>
+    </div>
 
-        <!-- Footer -->
+    <!-- Modal de Índice -->
+    <div id="modalIndice" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Índice de Sessões</h2>
+                <span class="close" onclick="fecharModalIndice()">&times;</span>
+            </div>
+            <div id="conteudoIndice"></div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -132,7 +144,7 @@
             fetch('/status')
                 .then(response => response.json())
                 .then(data => {
-                    // --- Apenas o Status Principal ---
+                    // Status Principal
                     const statusElement = document.getElementById('statusAtivo');
                     if (data.ativo) {
                         statusElement.textContent = 'Ativado';
@@ -142,12 +154,11 @@
                         statusElement.className = 'status-text status-inactive';
                     }
 
-                    // --- Lógica de Alertas e Prompt ---
+                    // Lógica de Alertas e Prompt
                     const alertBox = document.getElementById('alertBox');
                     const promptBox = document.getElementById('promptBox');
 
                     if (data.ultima_deteccao) {
-                        // Prompt (sempre mostra última ação)
                         promptBox.innerHTML = `
                             <strong>${data.ultima_deteccao.acao.toUpperCase()}</strong>
                             <br>
@@ -157,7 +168,6 @@
                         `;
                         promptBox.className = 'prompt-box prompt-active';
 
-                        // Alertas (apenas para eventos/anomalias)
                         if (data.ultima_deteccao.evento) {
                             const evento = data.ultima_deteccao.evento.replace(/_/g, ' ');
                             alertBox.innerHTML = `
@@ -206,6 +216,87 @@
                         <p class="video-time">${video.timestamp}</p>
                     </div>
                 `).join('');
+            }
+        }
+
+        // ==================== FUNÇÕES DO MODAL DE ÍNDICE ====================
+
+        function abrirModalIndice() {
+            fetch('/indices')
+                .then(response => response.json())
+                .then(indices => {
+                    const modal = document.getElementById('modalIndice');
+                    const conteudo = document.getElementById('conteudoIndice');
+
+                    if (indices.length === 0) {
+                        conteudo.innerHTML = '<div class="sem-dados">Nenhuma sessão gravada ainda.</div>';
+                    } else {
+                        const sessao = indices[0];
+
+                        let html = `
+                            <div class="sessao-info">
+                                <h3>${sessao.video_sessao}</h3>
+                                <p><strong>Início:</strong> ${sessao.inicio}</p>
+                                <p><strong>Duração:</strong> ${formatarSegundos(sessao.duracao)}</p>
+                                <p><strong>Anomalias:</strong> ${sessao.total_anomalias}</p>
+                                <a href="/videos_sessoes/${sessao.video_sessao}" download style="color: #4444ff; text-decoration: underline;">Baixar Vídeo Completo</a>
+                            </div>
+                        `;
+
+                        if (sessao.anomalias && sessao.anomalias.length > 0) {
+                            html += '<h3 style="color: #F5C742; margin: 20px 0 10px 0;">Anomalias Detectadas (clique para copiar timestamp):</h3>';
+                            html += '<div class="anomalias-lista">';
+
+                            sessao.anomalias.forEach((anomalia, i) => {
+                                html += `
+                                    <div class="anomalia-item" onclick="copiarTimestamp('${anomalia.tempo_no_video_formatado}')">
+                                        <strong>#${i + 1}</strong>
+                                        <span style="color: #00ff41; font-weight: bold; margin: 0 10px;">${anomalia.tempo_no_video_formatado}</span>
+                                        <span style="color: #ff4444; text-transform: uppercase;">${anomalia.tipo.replace(/_/g, ' ')}</span>
+                                        <br>
+                                        <span style="color: #B0B0B0; font-size: 0.85rem;">Clip: ${anomalia.clip_associado}</span>
+                                    </div>
+                                `;
+                            });
+
+                            html += '</div>';
+                        }
+
+                        conteudo.innerHTML = html;
+                    }
+
+                    modal.style.display = 'block';
+                })
+                .catch(error => {
+                    console.error('Erro ao carregar índices:', error);
+                    mostrarNotificacao('Erro ao carregar índices', 'error');
+                });
+        }
+
+        function fecharModalIndice() {
+            document.getElementById('modalIndice').style.display = 'none';
+        }
+
+        function copiarTimestamp(timestamp) {
+            navigator.clipboard.writeText(timestamp).then(() => {
+                mostrarNotificacao('Timestamp copiado: ' + timestamp, 'success');
+            }).catch(err => {
+                console.error('Erro ao copiar:', err);
+            });
+        }
+
+        function formatarSegundos(segundos) {
+            const h = Math.floor(segundos / 3600);
+            const m = Math.floor((segundos % 3600) / 60);
+            const s = Math.floor(segundos % 60);
+            return `${h}h ${m}m ${s}s`;
+        }
+
+        // Fechar modal ao clicar fora
+        window.onclick = function(event) {
+            const modal = document.getElementById('modalIndice');
+            if (event.target == modal) {
+                fecharModalIndice();
             }
         }
 
