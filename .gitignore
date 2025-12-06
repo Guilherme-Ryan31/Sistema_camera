@@ -1,0 +1,39 @@
+# Pastas de vídeos
+videos_anomalias/
+videos_sessoes/
+
+# Arquivos de vídeo
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.flv
+*.wmv
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Modelos treinados grandes (opcional)
+*.pt
+*.pth
+*.onnx
+*.weights
+
+# Sistema operacional
+.DS_Store
+Thumbs.db

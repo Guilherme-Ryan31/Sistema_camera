@@ -1,0 +1,37 @@
+{
+  "sistema": {
+    "usar_gpu": true,
+    "fps_camera": 30,
+    "resolucao": {
+      "largura": 640,
+      "altura": 480
+    },
+    "buffer_frames": 32
+  },
+  "cameras": [
+    {
+      "id": 0,
+      "nome": "Câmera Principal",
+      "source": 1,
+      "ativa": true,
+      "tipo": "webcam"
+    }
+  ],
+  "deteccao": {
+    "modelo_yolo": "yolov8n.pt",
+    "modelo_videomae": "MCG-NJU/videomae-base-finetuned-kinetics",
+    "confianca_minima": 0.5,
+    "intervalo_analise": 16
+  },
+  "gravacao": {
+    "qualidade_jpeg": 70,
+    "duracao_clip_anomalia": 10,
+    "pasta_videos_sessoes": "videos_sessoes",
+    "pasta_videos_anomalias": "videos_anomalias"
+  },
+  "servidor": {
+    "host": "0.0.0.0",
+    "porta": 5000,
+    "debug": true
+  }
+}

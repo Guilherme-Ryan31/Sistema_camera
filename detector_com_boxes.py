@@ -9,33 +9,51 @@ import torch
 from transformers import VideoMAEImageProcessor, VideoMAEForVideoClassification
 from ultralytics import YOLO
 import json
+from config_loader import ConfigLoader
 
 
 class DetectorComBoxes:
-    def __init__(self, video_source=0):
+    def __init__(self, video_source=0, camera_id=0, camera_nome="Camera", config=None):
+        # Carregar configurações
+        self.config = config if config else ConfigLoader()
+        self.camera_id = camera_id
+        self.camera_nome = camera_nome
+
         self.video_source = video_source
         self.cap = cv2.VideoCapture(video_source)
 
-        # Configurações de performance da câmera
-        self.cap.set(cv2.CAP_PROP_FPS, 30)
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+        # Configurações de performance da câmera (do config)
+        self.fps_camera = self.config.get('sistema', 'fps_camera', default=30)
+        largura = self.config.get('sistema', 'resolucao', 'largura', default=640)
+        altura = self.config.get('sistema', 'resolucao', 'altura', default=480)
+
+        self.cap.set(cv2.CAP_PROP_FPS, self.fps_camera)
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, largura)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, altura)
         self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 
-        print("🔄 Carregando YOLO...")
-        self.yolo = YOLO('yolov8n.pt')
-        self.yolo.to('cpu')
-        print("✅ YOLO carregado na CPU!\n")
+        # Carregar modelos IA
+        usar_gpu = self.config.get('sistema', 'usar_gpu', default=True)
+        modelo_yolo = self.config.get('deteccao', 'modelo_yolo', default='yolov8n.pt')
+        modelo_videomae = self.config.get('deteccao', 'modelo_videomae', default='MCG-NJU/videomae-base-finetuned-kinetics')
 
-        print("🔄 Carregando VideoMAE...")
-        model_name = "MCG-NJU/videomae-base-finetuned-kinetics"
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # Determinar device ANTES de carregar os modelos
+        self.device = torch.device("cuda" if (usar_gpu and torch.cuda.is_available()) else "cpu")
 
-        self.processor = VideoMAEImageProcessor.from_pretrained(model_name)
-        self.model = VideoMAEForVideoClassification.from_pretrained(model_name).to(self.device)
-        print(f"✅ VideoMAE em '{self.device}'.\n")
+        print(f"🔄 [{self.camera_nome}] Carregando YOLO...")
+        # YOLO carrega direto no device correto
+        self.yolo = YOLO(modelo_yolo)
+        # Configurar device para YOLO nas predições
+        self.yolo_device = 0 if (usar_gpu and torch.cuda.is_available()) else 'cpu'
+        print(f"✅ [{self.camera_nome}] YOLO configurado para {self.device}!\n")
 
-        self.frame_buffer = deque(maxlen=16)
+        print(f"🔄 [{self.camera_nome}] Carregando VideoMAE...")
+        self.processor = VideoMAEImageProcessor.from_pretrained(modelo_videomae)
+        self.model = VideoMAEForVideoClassification.from_pretrained(modelo_videomae).to(self.device)
+        print(f"✅ [{self.camera_nome}] VideoMAE em '{self.device}'.\n")
+
+        buffer_size = self.config.get('sistema', 'buffer_frames', default=16)
+        self.frame_buffer = deque(maxlen=buffer_size)
 
         # Sistema de threading
         self.fila_analise = Queue(maxsize=1)
@@ -50,19 +68,22 @@ class DetectorComBoxes:
         self.inicio_sessao = None
         self.nome_video_continuo = None
 
-        # 2. Clips de eventos (10s)
+        # 2. Clips de eventos (configurável)
         self.gravando = False
         self.inicio_gravacao = None
         self.video_writer = None
-        self.duracao_gravacao = 10
+        self.duracao_gravacao = self.config.get('gravacao', 'duracao_clip_anomalia', default=10)
 
-        # 3. Pastas e índice
-        self.pasta_videos = "videos_anomalias"  # Clips
-        self.pasta_sessoes = "videos_sessoes"  # Sessões completas
+        # 3. Pastas e índice (configurável)
+        self.pasta_videos = self.config.get('gravacao', 'pasta_videos_anomalias', default='videos_anomalias')
+        self.pasta_sessoes = self.config.get('gravacao', 'pasta_videos_sessoes', default='videos_sessoes')
         self.anomalias_detectadas = []
         self.arquivo_indice = None
 
-        # Criar pastas
+        # Criar pastas com ID da câmera
+        self.pasta_videos = os.path.join(self.pasta_videos, f"camera_{self.camera_id}")
+        self.pasta_sessoes = os.path.join(self.pasta_sessoes, f"camera_{self.camera_id}")
+
         for pasta in [self.pasta_videos, self.pasta_sessoes]:
             if not os.path.exists(pasta):
                 os.makedirs(pasta)
@@ -107,14 +128,45 @@ class DetectorComBoxes:
         try:
             print("📸 Analisando movimento...")
             label, confianca = self.classificar_video(video_clip)
-            print(f"🔎 IA: '{label}' ({confianca:.1%})")
+
+            # LOG DETALHADO - Mostra exatamente o que o VideoMAE detectou
+            print(f"\n{'='*60}")
+            print(f"🔎 DETECÇÃO VideoMAE [{self.camera_nome}]")
+            print(f"{'='*60}")
+            print(f"   Label detectado: '{label}'")
+            print(f"   Confiança: {confianca:.1%}")
+
+            # Verificar palavras-chave de violência
+            violencia_keywords = ["fight", "punch", "kick", "hit", "boxing", "slap", "headbutt", "wrestling", "beating", "smacking", "striking"]
+            suspeito_keywords = ["running", "jumping", "falling", "climbing"]
+            ilicita_keywords = ["robbery", "burglary", "stealing"]
+
+            print(f"\n   Verificação de palavras-chave:")
+            print(f"   - Violência {violencia_keywords}: ", end="")
+            if any(palavra in label for palavra in violencia_keywords):
+                print("✅ MATCH")
+            else:
+                print("❌ Não encontrado")
+
+            print(f"   - Suspeito {suspeito_keywords}: ", end="")
+            if any(palavra in label for palavra in suspeito_keywords):
+                print("✅ MATCH")
+            else:
+                print("❌ Não encontrado")
+
+            print(f"   - Ilícita {ilicita_keywords}: ", end="")
+            if any(palavra in label for palavra in ilicita_keywords):
+                print("✅ MATCH")
+            else:
+                print("❌ Não encontrado")
+            print(f"{'='*60}\n")
 
             evento = None
-            if any(palavra in label for palavra in ["fight", "punch", "kick", "hit"]):
+            if any(palavra in label for palavra in violencia_keywords):
                 evento = "violencia_detectada"
-            elif any(palavra in label for palavra in ["running", "jumping", "falling", "climbing"]):
+            elif any(palavra in label for palavra in suspeito_keywords):
                 evento = "comportamento_suspeito"
-            elif any(palavra in label for palavra in ["robbery", "burglary", "stealing"]):
+            elif any(palavra in label for palavra in ilicita_keywords):
                 evento = "atividade_ilicita"
 
             self.ultima_deteccao = {
@@ -124,9 +176,12 @@ class DetectorComBoxes:
                 'timestamp': datetime.now()
             }
 
+            # Gravar APENAS anomalias
             if evento:
-                print(f"🚨 Evento: {evento}")
+                print(f"🚨 EVENTO CLASSIFICADO: {evento}")
                 self.iniciar_gravacao(frame_atual, evento)
+            else:
+                print(f"ℹ️ Ação detectada mas não classificada como anomalia")
 
         except Exception as e:
             print(f"❌ Erro na análise: {e}")
@@ -150,8 +205,10 @@ class DetectorComBoxes:
         return False
 
     def processar_yolo_rapido(self, frame):
-        """YOLO na CPU - mais fluido para tempo real"""
-        results = self.yolo(frame, verbose=False, conf=0.5, imgsz=320)
+        """YOLO - configurável para CPU/GPU"""
+        confianca_min = self.config.get('deteccao', 'confianca_minima', default=0.5)
+        # Passar device explicitamente para evitar erro de meta tensor
+        results = self.yolo(frame, verbose=False, conf=confianca_min, imgsz=320, device=self.yolo_device)
 
         pessoas = 0
         boxes = []
@@ -175,8 +232,27 @@ class DetectorComBoxes:
 
     def classificar_video(self, video_clip):
         """Classificação na GPU (VideoMAE)"""
+        # VideoMAE espera EXATAMENTE 16 frames
+        # Se temos mais frames, pegamos frames espaçados uniformemente
+        num_frames_necessarios = 16
+        num_frames_disponiveis = len(video_clip)
+
+        if num_frames_disponiveis == num_frames_necessarios:
+            # Tamanho perfeito, usar todos
+            frames_selecionados = video_clip
+        elif num_frames_disponiveis > num_frames_necessarios:
+            # Temos mais frames, selecionar uniformemente
+            indices = [int(i * num_frames_disponiveis / num_frames_necessarios)
+                      for i in range(num_frames_necessarios)]
+            frames_selecionados = [video_clip[i] for i in indices]
+        else:
+            # Temos menos frames, duplicar o último
+            frames_selecionados = list(video_clip)
+            while len(frames_selecionados) < num_frames_necessarios:
+                frames_selecionados.append(video_clip[-1])
+
         video_clip_otimizado = []
-        for frame in video_clip:
+        for frame in frames_selecionados:
             frame_pequeno = cv2.resize(frame, (224, 224))
             video_clip_otimizado.append(frame_pequeno)
 
@@ -199,11 +275,11 @@ class DetectorComBoxes:
         try:
             self.inicio_sessao = datetime.now()
             timestamp_str = self.inicio_sessao.strftime('%Y%m%d_%H%M%S')
-            self.nome_video_continuo = f"sessao_{timestamp_str}.avi"
+            self.nome_video_continuo = f"sessao_{timestamp_str}.mp4"
             caminho_completo = os.path.join(self.pasta_sessoes, self.nome_video_continuo)
 
-            fourcc = cv2.VideoWriter_fourcc(*'XVID')
-            self.gravador_continuo = cv2.VideoWriter(caminho_completo, fourcc, 15.0, (640, 480))
+            fourcc = cv2.VideoWriter_fourcc(*'avc1')  # H.264
+            self.gravador_continuo = cv2.VideoWriter(caminho_completo, fourcc, float(self.fps_camera), (640, 480))
 
             if self.gravador_continuo.isOpened():
                 self.gravacao_continua = True
@@ -282,8 +358,9 @@ class DetectorComBoxes:
         nome = f"{evento_detectado}_{timestamp.strftime('%Y%m%d_%H%M%S')}.mp4"
         caminho = os.path.join(self.pasta_videos, nome)
 
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        self.video_writer = cv2.VideoWriter(caminho, fourcc, 15.0, (largura, altura))
+        # Usar H.264 para compatibilidade com navegadores
+        fourcc = cv2.VideoWriter_fourcc(*'avc1')  # H.264
+        self.video_writer = cv2.VideoWriter(caminho, fourcc, float(self.fps_camera), (largura, altura))
 
         self.gravando = True
         self.inicio_gravacao = time.time()
@@ -337,7 +414,10 @@ class DetectorComBoxes:
             if tempo_atual - self.ultimo_movimento_time > self.movimento_cooldown:
                 movimento = self.detectar_movimento(self.frame_anterior, frame_atual)
 
-                if movimento and not self.gravando and len(self.frame_buffer) == 16 and not self.analisando:
+                # Verificar se buffer está cheio (usa tamanho configurado)
+                buffer_cheio = len(self.frame_buffer) == self.frame_buffer.maxlen
+
+                if movimento and not self.gravando and buffer_cheio and not self.analisando:
                     self.analisando = True
                     self.ultimo_movimento_time = tempo_atual
 
