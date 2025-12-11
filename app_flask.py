@@ -188,20 +188,32 @@ def get_status(camera_id=None):
 
                 # Pegar última detecção desta câmera
                 ultima_det = None
+                
+                # --- INÍCIO DA ALTERAÇÃO ---
                 if detector.ultima_deteccao:
-                    # ATENÇÃO: self.ultima_deteccao agora SÓ é atualizado se for anomalia,
-                    # e a chave 'confianca' foi removida.
-                    ultima_det = {
-                        'acao': detector.ultima_deteccao['acao'],
-                        'evento': detector.ultima_deteccao['evento'],
-                        # Removido 'confianca' conforme solicitado
-                        'timestamp': detector.ultima_deteccao['timestamp'].strftime('%H:%M:%S'),
-                        'camera_id': cam_id,
-                        'camera_nome': detector.camera_nome
-                    }
-                    # Usar como última detecção global (da câmera 0 ou mais recente)
-                    if cam_id == 0 or ultima_deteccao_global is None:
-                        ultima_deteccao_global = ultima_det
+                    # Verifica há quanto tempo a detecção ocorreu
+                    agora = datetime.now()
+                    instante = detector.ultima_deteccao['timestamp']
+                    segundos = (agora - instante).total_seconds()
+
+                    # SÓ MOSTRA SE ACONTECEU NOS ÚLTIMOS 5 SEGUNDOS
+                    if segundos < 5:
+                        ultima_det = {
+                            'acao': detector.ultima_deteccao['acao'],
+                            'evento': detector.ultima_deteccao['evento'],
+                            # Remova ou mantenha 'confianca' conforme sua preferência anterior
+                            'timestamp': detector.ultima_deteccao['timestamp'].strftime('%H:%M:%S'),
+                            'camera_id': cam_id,
+                            'camera_nome': detector.camera_nome
+                        }
+                    else:
+                        # Se passou de 5 segundos, considera que não há detecção ativa
+                        ultima_det = None
+                # --- FIM DA ALTERAÇÃO ---
+
+                # Lógica para definir a detecção global (prioriza a que existe)
+                if ultima_det:
+                     ultima_deteccao_global = ultima_det
 
                 status = {
                     'camera_id': cam_id,
@@ -218,7 +230,7 @@ def get_status(camera_id=None):
             'sistema_ativo': sistema_ativo,
             'num_cameras': len(detectores),
             'cameras': cameras_status,
-            'ultima_deteccao': ultima_deteccao_global  # Adicionar para compatibilidade
+            'ultima_deteccao': ultima_deteccao_global
         })
 
 
