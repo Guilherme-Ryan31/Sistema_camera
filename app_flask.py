@@ -131,10 +131,12 @@ def get_status(camera_id=None):
             ultima_det = None
 
             if detector.ultima_deteccao:
+                # ATENÇÃO: self.ultima_deteccao agora SÓ é atualizado se for anomalia,
+                # e a chave 'confianca' foi removida.
                 ultima_det = {
                     'acao': detector.ultima_deteccao['acao'],
                     'evento': detector.ultima_deteccao['evento'],
-                    'confianca': detector.ultima_deteccao.get('confianca', 'N/D'),
+                    # Removido 'confianca' conforme solicitado
                     'timestamp': detector.ultima_deteccao['timestamp'].strftime('%H:%M:%S')
                 }
 
@@ -187,10 +189,12 @@ def get_status(camera_id=None):
                 # Pegar última detecção desta câmera
                 ultima_det = None
                 if detector.ultima_deteccao:
+                    # ATENÇÃO: self.ultima_deteccao agora SÓ é atualizado se for anomalia,
+                    # e a chave 'confianca' foi removida.
                     ultima_det = {
                         'acao': detector.ultima_deteccao['acao'],
                         'evento': detector.ultima_deteccao['evento'],
-                        'confianca': detector.ultima_deteccao.get('confianca', 'N/D'),
+                        # Removido 'confianca' conforme solicitado
                         'timestamp': detector.ultima_deteccao['timestamp'].strftime('%H:%M:%S'),
                         'camera_id': cam_id,
                         'camera_nome': detector.camera_nome
@@ -225,19 +229,21 @@ def get_videos(camera_id=None):
     global detectores
 
     if camera_id is not None:
-        # Vídeos de uma câmera específica
+        # CASO 1: Vídeos de uma câmera específica
         detector = detectores.get(camera_id)
         if detector:
             videos = detector.get_historico_videos()
             return jsonify([{
                 'nome': v['nome'],
-                'caminho': f'videos_anomalias/{camera_id}/{v["nome"]}',  # Usa ID numérico
+                'caminho': f'videos_anomalias/{camera_id}/{v["nome"]}',
                 'evento': v['evento'].replace('_', ' ').title(),
+                # Manda a ação traduzida. Se não tiver, manda o evento.
+                'acao': v.get('acao', v['evento']), 
                 'timestamp': v['timestamp'],
                 'camera_id': camera_id
             } for v in videos[:8]])
     else:
-        # Vídeos de todas as câmeras
+        # CASO 2: Vídeos de todas as câmeras (O MAIS IMPORTANTE PARA O GRÁFICO)
         todos_videos = []
         for cam_id, detector in detectores.items():
             if detector:
@@ -245,8 +251,10 @@ def get_videos(camera_id=None):
                 for v in videos[:8]:
                     v_info = {
                         'nome': v['nome'],
-                        'caminho': f'videos_anomalias/{cam_id}/{v["nome"]}',  # Ajustar caminho
+                        'caminho': f'videos_anomalias/{cam_id}/{v["nome"]}',
                         'evento': v['evento'].replace('_', ' ').title(),
+                        # Manda a ação traduzida. Se não tiver, manda o evento.
+                        'acao': v.get('acao', v['evento']), 
                         'timestamp': v['timestamp'],
                         'camera_id': cam_id,
                         'camera_nome': detector.camera_nome

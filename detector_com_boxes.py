@@ -127,59 +127,58 @@ class DetectorComBoxes:
         """Função interna para análise (chamada pelo worker)"""
         try:
             print("📸 Analisando movimento...")
-            label, confianca = self.classificar_video(video_clip)
+            label_ingles, confianca = self.classificar_video(video_clip)
 
-            # LOG DETALHADO - Mostra exatamente o que o VideoMAE detectou
-            print(f"\n{'='*60}")
-            print(f"🔎 DETECÇÃO VideoMAE [{self.camera_nome}]")
-            print(f"{'='*60}")
-            print(f"   Label detectado: '{label}'")
-            print(f"   Confiança: {confianca:.1%}")
+            # --- MUDANÇA 1: Dicionário de Tradução/Personalização ---
+            traducoes = {
+                "beatboxing": "Movimento Brusco",   
+                "unboxing" : "agressão",   
+                "punching bag": "Vandalismo",     
+                "punching person (boxing)": "Soco Detectado",
+                "headbutting": "Cabeçada",
+                "kicking": "Chute",
+                "running": "Correndo",
+                "fighting": "Briga Detectada"
+            }
+            
+            # Pega a tradução ou usa o original se não tiver na lista
+            label = traducoes.get(label_ingles, label_ingles)
+            # --------------------------------------------------------
 
-            # Verificar palavras-chave de violência
+            # Listas de palavras-chave (agora usando os nomes EM INGLÊS para lógica interna)
             violencia_keywords = ["fight", "punch", "kick", "hit", "boxing", "slap", "headbutt", "wrestling", "beating", "smacking", "striking"]
             suspeito_keywords = ["running", "jumping", "falling", "climbing"]
             ilicita_keywords = ["robbery", "burglary", "stealing"]
 
-            print(f"\n   Verificação de palavras-chave:")
-            print(f"   - Violência {violencia_keywords}: ", end="")
-            if any(palavra in label for palavra in violencia_keywords):
-                print("✅ MATCH")
-            else:
-                print("❌ Não encontrado")
-
-            print(f"   - Suspeito {suspeito_keywords}: ", end="")
-            if any(palavra in label for palavra in suspeito_keywords):
-                print("✅ MATCH")
-            else:
-                print("❌ Não encontrado")
-
-            print(f"   - Ilícita {ilicita_keywords}: ", end="")
-            if any(palavra in label for palavra in ilicita_keywords):
-                print("✅ MATCH")
-            else:
-                print("❌ Não encontrado")
-            print(f"{'='*60}\n")
+            print(f"\n{'='*60}")
+            print(f"🔎 DETECÇÃO VideoMAE [{self.camera_nome}]")
+            print(f"{'='*60}")
+            print(f"   Label Original: '{label_ingles}'")
+            print(f"   Label Exibido: '{label}'")
+            print(f"   Confiança: {confianca:.1%}")
 
             evento = None
-            if any(palavra in label for palavra in violencia_keywords):
+            # A verificação continua sendo feita no label original em inglês para garantir precisão
+            if any(palavra in label_ingles for palavra in violencia_keywords):
                 evento = "violencia_detectada"
-            elif any(palavra in label for palavra in suspeito_keywords):
+            elif any(palavra in label_ingles for palavra in suspeito_keywords):
                 evento = "comportamento_suspeito"
-            elif any(palavra in label for palavra in ilicita_keywords):
+            elif any(palavra in label_ingles for palavra in ilicita_keywords):
                 evento = "atividade_ilicita"
 
-            self.ultima_deteccao = {
-                'acao': label,
-                'evento': evento,
-                'confianca': f"{confianca:.1%}",
-                'timestamp': datetime.now()
-            }
+            # Força o evento se for beatboxing ou punching bag (caso as keywords não peguem)
+            if label_ingles in ["beatboxing", "punching bag"]:
+                 evento = "violencia_detectada"
 
-            # Gravar APENAS anomalias
             if evento:
-                print(f"🚨 EVENTO CLASSIFICADO: {evento}")
-                self.iniciar_gravacao(frame_atual, evento)
+                self.ultima_deteccao = {
+                    'acao': label, # Salva o nome TRADUZIDO/PERSONALIZADO
+                    'evento': evento,
+                    'timestamp': datetime.now()
+                }
+                print(f"🚨 EVENTO CLASSIFICADO: {evento} ({label})")
+                # Passa o label traduzido para a gravação
+                self.iniciar_gravacao(frame_atual, evento, acao_detectada=label)
             else:
                 print(f"ℹ️ Ação detectada mas não classificada como anomalia")
 
@@ -348,35 +347,37 @@ class DetectorComBoxes:
         segs = int(segundos % 60)
         return f"{horas:02d}:{minutos:02d}:{segs:02d}"
 
-    def iniciar_gravacao(self, frame, evento_detectado):
+    def iniciar_gravacao(self, frame, evento_detectado, acao_detectada="desconhecida"):
         """Inicia gravação de CLIP (10s)"""
         if self.gravando:
             return
 
         altura, largura = frame.shape[:2]
         timestamp = datetime.now()
+        # Nome do arquivo continua usando o evento genérico para facilitar organização
         nome = f"{evento_detectado}_{timestamp.strftime('%Y%m%d_%H%M%S')}.mp4"
         caminho = os.path.join(self.pasta_videos, nome)
 
-        # Usar H.264 para compatibilidade com navegadores
-        fourcc = cv2.VideoWriter_fourcc(*'avc1')  # H.264
+        fourcc = cv2.VideoWriter_fourcc(*'avc1')
         self.video_writer = cv2.VideoWriter(caminho, fourcc, float(self.fps_camera), (largura, altura))
 
         self.gravando = True
         self.inicio_gravacao = time.time()
 
-        # Adicionar ao histórico
+        # --- AQUI ESTÁ O SEGREDO ---
+        # Adicionar ao histórico COM A TRADUÇÃO
         self.historico_videos.append({
             'nome': nome,
             'caminho': caminho,
-            'evento': evento_detectado,
+            'evento': evento_detectado, # Categoria (ex: violencia_detectada)
+            'acao': acao_detectada,     # Ação Traduzida (ex: Movimento Brusco) <-- OBRIGATÓRIO
             'timestamp': timestamp.strftime('%d/%m/%Y %H:%M:%S')
         })
 
-        # NOVO: Registrar no índice da sessão contínua
+        # Registrar no índice da sessão contínua
         self.registrar_anomalia_no_indice(timestamp, evento_detectado)
 
-        print(f"🎥 Gravando CLIP: {nome}")
+        print(f"🎥 Gravando CLIP: {nome} (Ação: {acao_detectada})")
 
     def processar_frame(self):
         """Processamento otimizado - YOLO na CPU"""

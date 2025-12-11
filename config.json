@@ -12,7 +12,7 @@
     {
       "id": 0,
       "nome": "Câmera Principal",
-      "source": 1,
+      "source": 0,
       "ativa": true,
       "tipo": "webcam"
     }

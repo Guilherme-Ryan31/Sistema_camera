@@ -98,7 +98,7 @@
         setInterval(atualizarStatus, 1000);
 
         // Atualiza galeria e gráfico
-        setInterval(atualizarGaleriaEGrafico, 5000);
+        setInterval(atualizarGaleriaEGrafico, 8000);
 
         // Inicializar gráfico quando a página carregar
         document.addEventListener('DOMContentLoaded', (event) => {
@@ -146,7 +146,7 @@
                 .then(data => {
                     // Status Principal
                     const statusElement = document.getElementById('statusAtivo');
-                    if (data.ativo) {
+                    if (data.sistema_ativo) {
                         statusElement.textContent = 'Ativado';
                         statusElement.className = 'status-text status-active';
                     } else {
@@ -162,7 +162,7 @@
                         promptBox.innerHTML = `
                             <strong>${data.ultima_deteccao.acao.toUpperCase()}</strong>
                             <br>
-                            Confiança: ${data.ultima_deteccao.confianca}
+                            
                             <br>
                             (${data.ultima_deteccao.timestamp})
                         `;
